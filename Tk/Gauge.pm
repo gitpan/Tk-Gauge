@@ -1,4 +1,4 @@
-$Tk::Gauge::VERSION = '0.2';
+$Tk::Gauge::VERSION = '0.3';
 
 package Tk::Gauge;
 
@@ -15,30 +15,30 @@ Construct Tk::Widget 'Gauge';
 my $id = 0;			# needle ID
 
 my ( %band_defaults )   = (
-    -arccolor   =>       'white',
-    -minimum    =>             0,
-    -maximum    =>           100,
-    -piecolor   =>       'white',
-    -tag        =>            '',
+    -arccolor   =>        'white',
+    -minimum    =>              0,
+    -maximum    =>            100,
+    -piecolor   =>        'white',
+    -tag        =>             '',
 );				# default band options
 
 my $d2r = 0.0174532;		# degrees to radians
 
 my ( %needle_defaults ) = (
-    -arrowshape => [ 12, 23, 6 ],
-    -color      =>       'black',
-    -command    =>         undef,
-    -format     =>          '%d',
-    -id         =>             0,
-    -radius     =>            96,
-    -showvalue  =>             0,
-    -tag        =>            '',
-    -title      =>            '',
-    -titlecolor =>       'black',
-    -titlefont  =>'Helvetica-12',
-    -titleplace =>       'south',
-    -variable   =>      \my $var,
-    -width      =>             5,
+    -arrowshape =>  [ 12, 23, 6 ],
+    -color      =>        'black',
+    -command    =>          undef,
+    -format     =>           '%d',
+    -id         =>              0,
+    -radius     =>             96,
+    -showvalue  =>              0,
+    -tag        =>             '',
+    -title      =>             '',
+    -titlecolor =>        'black',
+    -titlefont  => 'Helvetica-12',
+    -titleplace =>        'south',
+    -variable   =>       \my $var,
+    -width      =>              5,
 );				# default needle options
 
 sub Populate {
@@ -69,10 +69,12 @@ sub Populate {
         -majortickcolor       => [ 'PASSIVE', 'majorTickColor'      , 'MajorTickColor'      ,              'black' ],
         -majortickinterval    => [ 'PASSIVE', 'majorTickInterval'   , 'MajorTickInterval'   ,                   10 ],
         -majorticklabelcolor  => [ 'PASSIVE', 'majorTickLabelColor' , 'MajorTickLabelColor' ,              'black' ],
-        -majorticklabelformat => [ 'PASSIVE', 'majorTickLabelFormat', 'MajorTickLableFormat',                 '%d' ],
-        -majorticklabelplace  => [ 'PASSIVE', 'majorTickLabelPlace' , 'MajorTickLablePlace' ,             'inside' ],
-        -majorticklabelscale  => [ 'PASSIVE', 'majorTickLabelScale' , 'MajorTickLableScale' ,                    1 ],
-        -majorticklabelskip   => [ 'PASSIVE', 'majorTickLabelSkip'  , 'MajorTickLableSkip'  ,                undef ],
+        -majorticklabelfont   => [ 'PASSIVE', 'majorTickLabelFont'  , 'MajorTickLabelFont'  ,       'Helvetica-12' ],
+        -majorticklabelformat => [ 'PASSIVE', 'majorTickLabelFormat', 'MajorTickLabelFormat',                 '%d' ],
+        -majorticklabelpad    => [ 'PASSIVE', 'majorTickLabelPad'   , 'MajorTickLabelPad'   ,                   10 ],
+        -majorticklabelplace  => [ 'PASSIVE', 'majorTickLabelPlace' , 'MajorTickLabelPlace' ,             'inside' ],
+        -majorticklabelscale  => [ 'PASSIVE', 'majorTickLabelScale' , 'MajorTickLabelScale' ,                    1 ],
+        -majorticklabelskip   => [ 'PASSIVE', 'majorTickLabelSkip'  , 'MajorTickLabelSkip'  ,                undef ],
         -majorticklength      => [ 'PASSIVE', 'majorTickLength'     , 'MajorTickLength'     ,                   10 ],
         -majortickthickness   => [ 'PASSIVE', 'majorTickThickness'  , 'MajorTickThickness'  ,                    1 ],
         -margin               => [ 'PASSIVE', 'margin'              , 'Margin'              ,                   10 ],
@@ -150,7 +152,7 @@ sub ConfigChanged {
 	    my $gext    = $self->cget( -extent ); # gauge -extent
 	    my $gstart  = $self->cget( -start ); # gauge -start
 	    my $ext     = - ( $max - $min  ) * ( $gext / ( $to - $from ) );
-	    my $start   = $gstart + $gext;
+	    my $start   = $gstart + $gext * ( $max - $from ) / ( $to - $from );
             my $radius4 = $radius - ( $self->cget( -bandwidth ) / 2 );
 	    my $style   = $self->cget( -bandstyle );
 	    die "Invalid -bandstyle '$style': must be 'band' or 'pieslice'." unless $style =~ /^band|pieslice$/;
@@ -213,10 +215,11 @@ sub ConfigChanged {
 
 	if( $major and $place ne 'hide' and not $skip ) {
 	    my $radius2;
+	    my $fw = $self->fontMeasure( $self->cget( '-majorticklabelfont' ), '0' );
 	    if( $place eq 'outside' ) {
-		$radius2 = $radius + ( length( $to * $scale ) / 2 * 10 ) + 10 ;
+		$radius2 = $radius + ( length( $to * $scale ) / 2 * $fw ) + $self->cget( -majorticklabelpad ) ;
 	    } elsif( $place eq 'inside' ) {
-		$radius2 = $radius - ( length( $to * $scale ) / 2 * 10 ) - 10 - $self->cget( -majorticklength );
+		$radius2 = $radius - ( length( $to * $scale ) / 2 * $fw ) - $self->cget( -majorticklabelpad ) - $self->cget( -majorticklength );
 	    }
 	    my( $x2, $y2 ) = ( cos( $theta ) * $radius2, sin( $theta ) * $radius2 );
 	    $x2 += $center_x;
@@ -337,7 +340,8 @@ sub setvalue {			# draw needle(s)
     $self->lower( 'hub', 'needle' ) if $hub_place eq 'underneedle';
     
     if( $showvalue ) {
-	my $radius2 = $self->{ -maxradius } + 10 + ( 10 * length( $self->cget( -to ) ) );
+	my $fw = $self->fontMeasure( $self->cget( -majorticklabelfont ), '0' );
+	my $radius2 = $self->{ -maxradius } + $self->cget( -majorticklabelpad ) + ( $fw * length( $self->cget( -to ) ) );
 	( $x, $y ) = $self->radialpoint( $value, $radius2 );
 	$value = sprintf( $format, $value );
 	$self->createText( $x, $y, -text => $value, -fill => $color, -tags => [ 'needlevalue', $needle->{ -id } ] );
@@ -417,7 +421,7 @@ sub radialpoint {            # coordinates of a needle value relative to the gau
     my $start    = $self->cget( -start );
     my $extent   = $self->cget( -extent );
     my $tincr    = $extent / ( $to - $from );
-    my $angle    = $start + ( $value * $tincr );
+    my $angle    = $start + ( ( $value - $from ) * $tincr );
     $angle       = -$angle * $d2r;
     my( $x, $y ) = ( cos( $angle ) * $radius, sin( $angle ) * $radius );
     my( $center_x, $center_y ) = $self->centerpoint;
@@ -443,9 +447,10 @@ Tk::Gauge - create a multitude of analog gauge widgets.
 =head1 DESCRIPTION
 
 This widget creates an analog gauge.  A gauge has various components:
-a radius, one or more needles, a hub, three granularities of tick
-marks, one of which has a value label, a caption, title and
-specialized bands that visually compartmentalize the gauge.
+a radius highlighted by a circumference, one or more needles, a hub,
+three granularities of tick marks, one of which has a value label, a
+caption, title and specialized bands that visually compartmentalize
+the gauge.
 
 A gauge's appearance is specified by manipulating a set of
 approximately 60 options, all described below. Given this flexibility
@@ -577,9 +582,17 @@ marks.
 
 Major tick marks can be labelled with an integer value of this color.
 
+=item B<-majorticklabelfont> ('Helvetica-12')
+
+A standard Tk font specification.
+
 =item B<-majorticklabelformat> ('%d')
 
 A standard C language I<(s)printf> format specification.
+
+=item B<-majorticklabelpad> (10)
+
+Padding distance between the major tick label and the gauge's circumference.
 
 =item B<-majorticklabelplace> ('inside')
 
@@ -737,13 +750,13 @@ B<-majorticklabelscale> accordingly.
 For instance, suppose you want to make a tachometer to display RPM
 from zero to 8,000.  Do not chose B<-from> => 0 and B<-to> -> 8000!
 Slow city. If your major tick interval unit is RPM/1000, choose 1 .. 8
-instead. Maybe.
+instead. Well, maybe.
 
-Now suppose you want a minor tick every 500 RPM. Since any tick
-interval must be a positive integer, make B<-to> 80, the major 
-tick interval 10, and the minor tick interval 5.
+Now suppose you require a minor tick every 500 RPM. Since any tick
+interval must be a positive integer, make B<-to> 80, the major tick
+interval 10, and the minor tick interval 5.
 
-Now suppose your BHB requires a third fine tick interval every 250
+Now suppose your PHB requires a third fine tick interval every 250
 RPM. Since any tick interval must be a positive integer, make B<-to>
 800, the major tick interval 100, the minor tick interval 50, and
 the new, fine tick interval, 25.  Finally, set the major tick label 
@@ -763,7 +776,7 @@ More simply:
  -majorticklabelscale  => $iLCD / 1000
  -minortickinterval    => 500 / $iLCD
 
-An to scale an actual RPM value:  $rpm = 1800 / $iLCD. See
+And to scale an actual RPM value:  $rpm = 1800 / $iLCD. See
 the EXAMPLES section.
 
 =back

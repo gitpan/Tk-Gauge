@@ -1,12 +1,14 @@
 #!/usr/local/bin/perl
 use Tk;
 use Tk::Gauge;
+use Tk::Pane;
 use subs qw/ fuel speedometer tachometer temperature /;
 use strict;
 use warnings;
 
 my $mw = MainWindow->new;
-$mw->configure( -bg => 'black' );
+$mw = $mw->Scrolled( qw/ Pane -width 400 -height 400 / )->pack( qw/ -fill both -expand 1 / );
+$mw->configure( -background => 'black' );
 
 my $tachf  = $mw->Frame->pack( qw/ -side left / );
 my $speedf = $mw->Frame->pack( qw/ -side left / );
@@ -272,7 +274,7 @@ sub tachometer {
         -to                   => 8000 / $iLCD,
     );
 
-    $mw->after(500 => sub { $tachv = 1800 / $iLCD } );
+    $mw->after(1000 => sub { $tachv = 1800 / $iLCD } );
 
     return $tach;
 
