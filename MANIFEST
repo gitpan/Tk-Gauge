@@ -1,0 +1,11 @@
+MANIFEST
+Makefile.PL
+README
+Tk/Gauge.pm
+Tk/Labelled.pm
+examples/clock
+examples/clock24
+examples/cpumeter
+examples/honda
+t/test1.t
+META.yml                                 Module meta-data (added by MakeMaker)
